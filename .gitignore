@@ -1,0 +1,8 @@
+# ambiente e binarios de terceiros
+.venv/
+DS4Windows/
+__pycache__/
+
+# gerados nesta maquina
+*.log
+calibracao.ini
