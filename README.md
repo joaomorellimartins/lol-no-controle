@@ -21,7 +21,7 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | R1 | autoataque (clique esquerdo = atacar-mover no cursor) |
 | L1 / L2 / R2 / X | habilidades 1 / 2 / 3 / 4 |
 | L3 segurado + L1·L2·R2·X | subir habilidade 1 / 2 / 3 / 4 (Ctrl+Q/W/E/R) |
-| **Segurando** habilidade ou autoataque | stick direito mira (até no modo livre), **giroscópio** ajusta fino, vibra no **limite do alcance** |
+| *(desligado)* Segurando habilidade ou autoataque | stick direito mira, giroscópio ajusta fino, vibra no limite do alcance. Religar: `MIRA_AO_SEGURAR`, `GIRO_ATIVO`, `VIBRA_BORDA` |
 | L3 (toque sozinho) | clique direito |
 | Quadrado / Triângulo | feitiços 5 / 6 |
 | Direcional | esq = item 7, dir = item 8, cima = 9 (ward), baixo = B (voltar à base) |

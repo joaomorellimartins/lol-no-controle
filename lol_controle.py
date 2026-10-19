@@ -10,9 +10,8 @@ MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
   R3 SEGURADO 1 s ...... CALIBRAR (camera travada, mouse fisico em cima do personagem) -- ou Create + R3
   R1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
   L1 / L2 / R2 / X ..... habilidades 1 / 2 / 3 / 4
-  SEGURANDO habilidade/autoataque: stick direito mira (mesmo no modo LIVRE), inclinar o controle
-                         (giroscopio) ajusta fino, e vibra quando o stick chega no limite do alcance.
-                         Com "Quick Cast with Indicator" no jogo: segura = indicador, solta = lanca.
+  (desligado) SEGURANDO habilidade/autoataque: stick direito mira, giroscopio ajusta fino, vibra no
+                         limite do alcance -- religar com MIRA_AO_SEGURAR / GIRO_ATIVO / VIBRA_BORDA.
   L3 SEGURADO + L1/L2/R2/X ... subir habilidade 1/2/3/4 (Ctrl+Q/W/E/R)
   L3 (toque sozinho) ... clique direito
   Quadrado / Triangulo . feiticos 5 / 6          Bola ... segurar = centralizar camera
@@ -47,13 +46,15 @@ ZONA_WASD        = 0.40    # quanto empurrar o stick esquerdo para virar W/A/S/D
 RAIO_X           = 600     # modo mira: alcance horizontal a partir do personagem (pixels)
 RAIO_Y           = 380     # modo mira: alcance vertical
 ZONA_MORTA_MIRA  = 0.25    # stick precisa passar disso para mirar
-# --- mira de habilidade (segurar o botao da habilidade ou do autoataque)
-GIRO_ATIVO       = True    # inclinar o controle ajusta o cursor enquanto segura habilidade/autoataque
+# --- mira de habilidade (segurar o botao da habilidade ou do autoataque) -- DESLIGADA (testada em 18/10/2026,
+#     funcionou mas nao agradou; o codigo fica para religar trocando as chaves abaixo para True)
+MIRA_AO_SEGURAR  = False   # segurando habilidade/autoataque, o stick direito mira mesmo no modo LIVRE
+GIRO_ATIVO       = False   # inclinar o controle ajusta o cursor enquanto segura habilidade/autoataque
 GIRO_PX_GRAU     = 10.0    # pixels por grau de giro (maior = mais sensivel)
 GIRO_INV_X       = False   # inverte o sentido horizontal do giroscopio
 GIRO_INV_Y       = False   # inverte o sentido vertical do giroscopio
 GIRO_ZONA_GRAU_S = 1.5     # ignora giro mais lento que isso (tremor da mao/deriva)
-VIBRA_BORDA      = True    # toque de vibracao quando o stick chega no limite do alcance
+VIBRA_BORDA      = False   # toque de vibracao quando o stick chega no limite do alcance
 VOLTA_S          = 0       # segundos PARADO (stick solto e nenhum botao apertado) para o cursor voltar ao
                            # personagem; enquanto isso ele fica onde voce apontou (0 = nunca volta)
 MINIMAPA         = (0.7927, 0.6296, 0.9906, 0.9815)  # minimapa como fracao da janela: x0,y0,x1,y1
@@ -1013,7 +1014,7 @@ class Motor:
         # --- stick direito (+ giroscopio enquanto segura habilidade/autoataque)
         rx, ry = s["rx"], s["ry"]
         mag = (rx * rx + ry * ry) ** 0.5
-        mirando = any(s[n] for n in HABILIDADES) or s[BOTAO_AUTOATAQUE]
+        mirando = MIRA_AO_SEGURAR and (any(s[n] for n in HABILIDADES) or s[BOTAO_AUTOATAQUE])
         if mirando and not self.mirando_antes:
             self.giro_off = [0.0, 0.0]
             self.base_mira = cursor()             # a mira parte de onde o cursor esta
