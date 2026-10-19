@@ -9,13 +9,15 @@ MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
                          solto: o cursor vai para frente do personagem, no rumo em que ele anda (WASD)
   R3 (clicar stick dir). toque curto = alterna MIRA <-> LIVRE (LIVRE = cursor solto, loja/menus)
   R3 SEGURADO 1 s ...... CALIBRAR (camera travada, mouse fisico em cima do personagem) -- ou Create + R3
-  R1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
+  R1 ................... autoataque: stick direito solto = atacar-mover nos pes (o JOGO ataca o inimigo mais
+                         perto de voce); stick direito apontando = ataca o mais perto de onde aponta
+  Bola ................. liga/desliga "mirar so em campeoes" do jogo (Tab): bipe agudo = ligado, grave = desligado
   L1 / L2 / R2 / X ..... habilidades 1 / 2 / 3 / 4
   (desligado) SEGURANDO habilidade/autoataque: stick direito mira, giroscopio ajusta fino, vibra no
                          limite do alcance -- religar com MIRA_AO_SEGURAR / GIRO_ATIVO / VIBRA_BORDA.
   L3 SEGURADO + L1/L2/R2/X ... subir habilidade 1/2/3/4 (Ctrl+Q/W/E/R)
   L3 (toque sozinho) ... clique direito
-  Quadrado / Triangulo . feiticos 5 / 6          Bola ... segurar = centralizar camera
+  Quadrado / Triangulo . feiticos 5 / 6
   Direcional ........... esquerda = item 7 | direita = item 8 | cima = 9 (ward) | baixo = B (voltar a base)
   Touchpad (arrastar) .. clique esquerdo + movimento sobre o MINIMAPA, partindo de onde a camera esta
   Options .............. Esc        Create (tocar) .... loja
@@ -50,6 +52,8 @@ ZONA_MORTA_MIRA  = 0.25    # stick precisa passar disso para mirar
 MIRA_POR_DIRECAO = True    # stick direito so da a DIRECAO: o cursor fica a uma distancia fixa (MIRA_DISTANCIA)
 MIRA_DISTANCIA   = 0.75    # distancia fixa, como fracao de RAIO_X/RAIO_Y
 MIRA_SEGUE_MOVIMENTO = True  # stick direito solto: o cursor vai para frente do personagem, no rumo em que ele anda
+AUTOATAQUE_MAIS_PERTO = True # R1 com stick direito solto: atacar-mover nos pes = o jogo ataca o inimigo mais perto
+BOLA_SO_CAMPEOES = True      # Bola liga/desliga "mirar so em campeoes" do jogo (Tab)
 # --- mira de habilidade (segurar o botao da habilidade ou do autoataque) -- DESLIGADA (testada em 18/10/2026,
 #     funcionou mas nao agradou; o codigo fica para religar trocando as chaves abaixo para True)
 MIRA_AO_SEGURAR  = False   # segurando habilidade/autoataque, o stick direito mira mesmo no modo LIVRE
@@ -490,6 +494,7 @@ ACAO_DPAD = {
 }
 ACAO_LOJA = ("evtOpenShop", P("p"))
 ACAO_CAMERA = ("evtCameraLockToggle", P("y"))
+ACAO_SO_CAMPEOES = ("evtChampionOnly", P("tab"))   # no jogo: TargetChampionsOnlyAsToggle=1 (liga/desliga)
 MOD_ORDEM = ("ctrl", "alt", "shift")
 
 
@@ -609,6 +614,8 @@ class Motor:
         self.t_diag = 0.0
         self.create_combo = False
         self.l3_combo = False
+        self.autoataque_cursor = None
+        self.so_campeoes = False
         self.giro_bias = None
         self.giro_off = [0.0, 0.0]
         self.giro_f = [0.0, 0.0]
@@ -925,8 +932,17 @@ class Motor:
 
         # --- habilidades / feiticos / atacar-mover (com Create: subir habilidade)
         for n, (ev, pad) in ACAO_BOTAO.items():
+            if n == "circle" and BOLA_SO_CAMPEOES:
+                # Bola = liga/desliga "mirar so em campeoes" (funcao do proprio jogo, tecla evtChampionOnly)
+                if desc[n]:
+                    self.toca_acao(at.acao(*ACAO_SO_CAMPEOES))
+                    self.so_campeoes = not self.so_campeoes
+                    bipe(1100 if self.so_campeoes else 600, 90)
+                    self.pulso(110 if self.so_campeoes else 60, 60)
+                    log.info("so campeoes=%s", self.so_campeoes)
+                continue
             if n == "circle" and at.wasd_ativo:
-                # no preset WASD o 'A' e andar para a esquerda; atacar-mover ja e o clique esquerdo (X).
+                # no preset WASD o 'A' e andar para a esquerda; atacar-mover ja e o clique esquerdo.
                 # A Bola vira "centralizar camera" (segurar).
                 ev, pad = "evtCameraSnap", P("space")
             if desc[n]:
@@ -938,10 +954,26 @@ class Motor:
             elif sobe[n]:
                 self.solta(n)
         # --- cliques
+        # --- autoataque: atacar-mover (clique esquerdo). Com o stick direito solto, o clique sai nos pes do
+        #     personagem, entao o PROPRIO JOGO ataca o inimigo mais perto de voce (com "so campeoes" ligado,
+        #     o campeao mais perto). Com o stick direito apontando, ataca o mais perto de onde voce aponta.
         if desc[BOTAO_AUTOATAQUE]:
+            self.autoataque_cursor = None
+            mag_d = (s["rx"] ** 2 + s["ry"] ** 2) ** 0.5
+            if AUTOATAQUE_MAIS_PERTO and mag_d <= ZONA_MORTA_MIRA:
+                self.autoataque_cursor = cursor()
+                mover(*self.centro_personagem(rect))
+            elif self.modo_mira and mag_d > ZONA_MORTA_MIRA:
+                # posiciona no ponto mirado ANTES do clique
+                cx, cy = self.centro_personagem(rect)
+                esc = MIRA_DISTANCIA if MIRA_POR_DIRECAO else min(1.0, (mag_d - ZONA_MORTA_MIRA) / (0.85 - ZONA_MORTA_MIRA))
+                mover(round(cx + s["rx"] / mag_d * RAIO_X * esc), round(cy + s["ry"] / mag_d * RAIO_Y * esc))
             self.segura_mouse(BOTAO_AUTOATAQUE, "esq")
         elif sobe[BOTAO_AUTOATAQUE]:
             self.solta(BOTAO_AUTOATAQUE)
+            if self.autoataque_cursor:
+                mover(*self.autoataque_cursor)
+                self.autoataque_cursor = None
         # --- L3: segurado = modificador de subir habilidade; toque sozinho = clique direito
         if desc["l3"]:
             self.l3_combo = False
@@ -1014,6 +1046,8 @@ class Motor:
 
         if self.toque:
             return
+        if self.autoataque_cursor and s[BOTAO_AUTOATAQUE]:
+            return          # segurando o autoataque nos pes: nao mexe o cursor
 
         # --- stick direito (+ giroscopio enquanto segura habilidade/autoataque)
         rx, ry = s["rx"], s["ry"]

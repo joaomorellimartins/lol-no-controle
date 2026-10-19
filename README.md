@@ -19,14 +19,14 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | Stick direito | **Modo mira**: cursor = personagem + **direção** do stick, a distância fixa (`MIRA_DISTANCIA`); fica onde você mirou (precisa de câmera travada) |
 | Stick direito solto | o cursor vai para a frente do personagem, **no rumo em que ele anda** (WASD) |
 | R3 (toque) / R3 segurado 1 s | alterna MIRA ↔ LIVRE / **calibra** (mouse físico em cima do personagem) |
-| R1 | autoataque (clique esquerdo = atacar-mover no cursor) |
+| R1 | autoataque: com o stick direito solto, atacar-mover nos pés (o **jogo** ataca o inimigo mais perto de você); com o stick apontando, o mais perto de onde aponta |
+| Bola | liga/desliga **"mirar só em campeões"** do jogo (Tab). Bipe agudo = ligado, grave = desligado |
 | L1 / L2 / R2 / X | habilidades 1 / 2 / 3 / 4 |
 | L3 segurado + L1·L2·R2·X | subir habilidade 1 / 2 / 3 / 4 (Ctrl+Q/W/E/R) |
 | *(desligado)* Segurando habilidade ou autoataque | stick direito mira, giroscópio ajusta fino, vibra no limite do alcance. Religar: `MIRA_AO_SEGURAR`, `GIRO_ATIVO`, `VIBRA_BORDA` |
 | L3 (toque sozinho) | clique direito |
 | Quadrado / Triângulo | feitiços 5 / 6 |
 | Direcional | esq = item 7, dir = item 8, cima = 9 (ward), baixo = B (voltar à base) |
-| Bola | segurar = centralizar câmera (Espaço) |
 | Create (tocar) | loja (P) |
 | Create + clique do touchpad | travar/destravar câmera |
 | Touchpad (arrastar) | clique esquerdo no minimapa, partindo de onde a câmera está |
