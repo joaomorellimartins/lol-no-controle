@@ -8,9 +8,9 @@ MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
   Stick direito ........ MODO MIRA: cursor = personagem + direcao do stick (fica onde voce mirou)
   R3 (clicar stick dir). toque curto = alterna MIRA <-> LIVRE (LIVRE = cursor solto, loja/menus)
   R3 SEGURADO 1 s ...... CALIBRAR (camera travada, mouse fisico em cima do personagem) -- ou Create + R3
-  L1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
-  L2 / R1 / R2 / X ..... habilidades 1 / 2 / 3 / 4
-  L3 SEGURADO + L2/R1/R2/X ... subir habilidade 1/2/3/4 (Ctrl+Q/W/E/R)
+  R1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
+  L1 / L2 / R2 / X ..... habilidades 1 / 2 / 3 / 4
+  L3 SEGURADO + L1/L2/R2/X ... subir habilidade 1/2/3/4 (Ctrl+Q/W/E/R)
   L3 (toque sozinho) ... clique direito
   Quadrado / Triangulo . feiticos 5 / 6          Bola ... segurar = centralizar camera
   Direcional ........... esquerda = item 7 | direita = item 8 | cima = 9 (ward) | baixo = B (voltar a base)
@@ -453,16 +453,16 @@ def P(tecla_, *mods):
 # botao do controle -> (evento no input.ini do jogo, atalho reserva). O DONO das teclas e o jogo:
 # o que voce salvar em Opcoes > Teclas de atalho passa a valer aqui sozinho.
 ACAO_BOTAO = {
-    "l2": ("evtCastSpell1", P("q")), "r1": ("evtCastSpell2", P("w")),
+    "l1": ("evtCastSpell1", P("q")), "l2": ("evtCastSpell2", P("w")),
     "r2": ("evtCastSpell3", P("e")), "cross": ("evtCastSpell4", P("r")),
     "square": ("evtCastAvatarSpell1", P("d")), "triangle": ("evtCastAvatarSpell2", P("f")),
     "circle": ("evtPlayerAttackMove", P("a")),
 }
 NIVEL_BOTAO = {          # Create + botao = subir habilidade (no jogo: evtLevelSpellN, normalmente Ctrl+tecla)
-    "l2": ("evtLevelSpell1", P("q", "ctrl")), "r1": ("evtLevelSpell2", P("w", "ctrl")),
+    "l1": ("evtLevelSpell1", P("q", "ctrl")), "l2": ("evtLevelSpell2", P("w", "ctrl")),
     "r2": ("evtLevelSpell3", P("e", "ctrl")), "cross": ("evtLevelSpell4", P("r", "ctrl")),
 }
-BOTAO_AUTOATAQUE = "l1"  # clique esquerdo = atacar-mover no cursor (EnableLeftMouseButtonAttackMove do jogo)
+BOTAO_AUTOATAQUE = "r1"  # clique esquerdo = atacar-mover no cursor (EnableLeftMouseButtonAttackMove do jogo)
 ACAO_DPAD = {
     "left": ("evtUseItem1", P("1")), "right": ("evtUseItem2", P("2")),
     "up": ("evtUseVisionItem", P("4")),      # trinket / colocar ward

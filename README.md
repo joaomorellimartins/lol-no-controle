@@ -18,9 +18,9 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | Stick esquerdo | W A S D (andar) |
 | Stick direito | **Modo mira**: cursor = personagem + direção do stick; fica onde você mirou (precisa de câmera travada) |
 | R3 (toque) / R3 segurado 1 s | alterna MIRA ↔ LIVRE / **calibra** (mouse físico em cima do personagem) |
-| L1 | autoataque (clique esquerdo = atacar-mover no cursor) |
-| L2 / R1 / R2 / X | habilidades 1 / 2 / 3 / 4 |
-| L3 segurado + L2·R1·R2·X | subir habilidade 1 / 2 / 3 / 4 (Ctrl+Q/W/E/R) |
+| R1 | autoataque (clique esquerdo = atacar-mover no cursor) |
+| L1 / L2 / R2 / X | habilidades 1 / 2 / 3 / 4 |
+| L3 segurado + L1·L2·R2·X | subir habilidade 1 / 2 / 3 / 4 (Ctrl+Q/W/E/R) |
 | L3 (toque sozinho) | clique direito |
 | Quadrado / Triângulo | feitiços 5 / 6 |
 | Direcional | esq = item 7, dir = item 8, cima = 9 (ward), baixo = B (voltar à base) |
