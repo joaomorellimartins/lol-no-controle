@@ -12,6 +12,7 @@ MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
   R1 ................... autoataque: stick direito solto = atacar-mover nos pes (o JOGO ataca o inimigo mais
                          perto de voce); stick direito apontando = ataca o mais perto de onde aponta
   Bola ................. liga/desliga "mirar so em campeoes" do jogo (Tab): bipe agudo = ligado, grave = desligado
+  Create + Bola ........ liga/desliga "a mira acompanha o rumo do movimento (stick esquerdo)" (padrao: desligado)
   L1 / L2 / R2 / X ..... habilidades 1 / 2 / 3 / 4
   (desligado) SEGURANDO habilidade/autoataque: stick direito mira, giroscopio ajusta fino, vibra no
                          limite do alcance -- religar com MIRA_AO_SEGURAR / GIRO_ATIVO / VIBRA_BORDA.
@@ -51,7 +52,8 @@ RAIO_Y           = 380     # modo mira: alcance vertical
 ZONA_MORTA_MIRA  = 0.25    # stick precisa passar disso para mirar
 MIRA_POR_DIRECAO = True    # stick direito so da a DIRECAO: o cursor fica a uma distancia fixa (MIRA_DISTANCIA)
 MIRA_DISTANCIA   = 0.75    # distancia fixa, como fracao de RAIO_X/RAIO_Y
-MIRA_SEGUE_MOVIMENTO = True  # stick direito solto: o cursor vai para frente do personagem, no rumo em que ele anda
+MIRA_SEGUE_MOVIMENTO = False # stick direito solto: o cursor vai para frente do personagem, no rumo em que ele anda
+                             # (desligado por padrao; Create + Bola liga/desliga durante o jogo)
 AUTOATAQUE_MAIS_PERTO = True # R1 com stick direito solto: atacar-mover nos pes = o jogo ataca o inimigo mais perto
 BOLA_SO_CAMPEOES = True      # Bola liga/desliga "mirar so em campeoes" do jogo (Tab)
 # --- mira de habilidade (segurar o botao da habilidade ou do autoataque) -- DESLIGADA (testada em 18/10/2026,
@@ -616,6 +618,7 @@ class Motor:
         self.l3_combo = False
         self.autoataque_cursor = None
         self.so_campeoes = False
+        self.segue_mov = MIRA_SEGUE_MOVIMENTO
         self.giro_bias = None
         self.giro_off = [0.0, 0.0]
         self.giro_f = [0.0, 0.0]
@@ -934,7 +937,14 @@ class Motor:
         for n, (ev, pad) in ACAO_BOTAO.items():
             if n == "circle" and BOLA_SO_CAMPEOES:
                 # Bola = liga/desliga "mirar so em campeoes" (funcao do proprio jogo, tecla evtChampionOnly)
-                if desc[n]:
+                if desc[n] and create:
+                    # Create + Bola: liga/desliga "a mira acompanha o rumo do movimento (stick esquerdo)"
+                    self.create_combo = True
+                    self.segue_mov = not self.segue_mov
+                    bipe(1300 if self.segue_mov else 450, 90)
+                    self.pulso(110 if self.segue_mov else 60, 60)
+                    log.info("mira segue movimento=%s", self.segue_mov)
+                elif desc[n]:
                     self.toca_acao(at.acao(*ACAO_SO_CAMPEOES))
                     self.so_campeoes = not self.so_campeoes
                     bipe(1100 if self.so_campeoes else 600, 90)
@@ -1082,7 +1092,7 @@ class Motor:
                     self.mira_ativa = False
                     self.soltou_em = agora
                 # stick direito solto: mira no rumo em que o personagem anda (teclas W/A/S/D apertadas agora)
-                if MIRA_SEGUE_MOVIMENTO and not mirando:
+                if self.segue_mov and not mirando:
                     ts = self.teclas_stick
                     vx = int(self.wasd[ts["right"]]) - int(self.wasd[ts["left"]])
                     vy = int(self.wasd[ts["down"]]) - int(self.wasd[ts["up"]])

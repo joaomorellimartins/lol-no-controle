@@ -17,7 +17,7 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 |---|---|
 | Stick esquerdo | W A S D (andar) |
 | Stick direito | **Modo mira**: cursor = personagem + **direção** do stick, a distância fixa (`MIRA_DISTANCIA`); fica onde você mirou (precisa de câmera travada) |
-| Stick direito solto | o cursor vai para a frente do personagem, **no rumo em que ele anda** (WASD) |
+| Create + Bola | liga/desliga "stick direito solto = cursor vai para a frente do personagem, **no rumo em que ele anda**" (padrão: desligado) |
 | R3 (toque) / R3 segurado 1 s | alterna MIRA ↔ LIVRE / **calibra** (mouse físico em cima do personagem) |
 | R1 | autoataque: com o stick direito solto, atacar-mover nos pés (o **jogo** ataca o inimigo mais perto de você); com o stick apontando, o mais perto de onde aponta |
 | Bola | liga/desliga **"mirar só em campeões"** do jogo (Tab). Bipe agudo = ligado, grave = desligado |
