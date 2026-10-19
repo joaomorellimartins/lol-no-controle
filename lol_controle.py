@@ -10,6 +10,9 @@ MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
   R3 SEGURADO 1 s ...... CALIBRAR (camera travada, mouse fisico em cima do personagem) -- ou Create + R3
   R1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
   L1 / L2 / R2 / X ..... habilidades 1 / 2 / 3 / 4
+  SEGURANDO habilidade/autoataque: stick direito mira (mesmo no modo LIVRE), inclinar o controle
+                         (giroscopio) ajusta fino, e vibra quando o stick chega no limite do alcance.
+                         Com "Quick Cast with Indicator" no jogo: segura = indicador, solta = lanca.
   L3 SEGURADO + L1/L2/R2/X ... subir habilidade 1/2/3/4 (Ctrl+Q/W/E/R)
   L3 (toque sozinho) ... clique direito
   Quadrado / Triangulo . feiticos 5 / 6          Bola ... segurar = centralizar camera
@@ -44,6 +47,13 @@ ZONA_WASD        = 0.40    # quanto empurrar o stick esquerdo para virar W/A/S/D
 RAIO_X           = 600     # modo mira: alcance horizontal a partir do personagem (pixels)
 RAIO_Y           = 380     # modo mira: alcance vertical
 ZONA_MORTA_MIRA  = 0.25    # stick precisa passar disso para mirar
+# --- mira de habilidade (segurar o botao da habilidade ou do autoataque)
+GIRO_ATIVO       = True    # inclinar o controle ajusta o cursor enquanto segura habilidade/autoataque
+GIRO_PX_GRAU     = 10.0    # pixels por grau de giro (maior = mais sensivel)
+GIRO_INV_X       = False   # inverte o sentido horizontal do giroscopio
+GIRO_INV_Y       = False   # inverte o sentido vertical do giroscopio
+GIRO_ZONA_GRAU_S = 1.5     # ignora giro mais lento que isso (tremor da mao/deriva)
+VIBRA_BORDA      = True    # toque de vibracao quando o stick chega no limite do alcance
 VOLTA_S          = 0       # segundos PARADO (stick solto e nenhum botao apertado) para o cursor voltar ao
                            # personagem; enquanto isso ele fica onde voce apontou (0 = nunca volta)
 MINIMAPA         = (0.7927, 0.6296, 0.9906, 0.9815)  # minimapa como fracao da janela: x0,y0,x1,y1
@@ -315,6 +325,10 @@ def ler_estado(r):
         "ps": bool(b2 & 0x01), "tpclick": bool(b2 & 0x02),
         "up": cima, "right": dir_, "down": baixo, "left": esq,
         "touch": toca, "tx": tx, "ty": ty,
+        # giroscopio (bruto, ~16.4 por grau/s): pitch = inclinar frente/tras, yaw = girar para os lados
+        "gpitch": struct.unpack_from("<h", bytes(s[15:17]))[0],
+        "gyaw": struct.unpack_from("<h", bytes(s[17:19]))[0],
+        "groll": struct.unpack_from("<h", bytes(s[19:21]))[0],
     }
 
 
@@ -462,6 +476,7 @@ NIVEL_BOTAO = {          # Create + botao = subir habilidade (no jogo: evtLevelS
     "l1": ("evtLevelSpell1", P("q", "ctrl")), "l2": ("evtLevelSpell2", P("w", "ctrl")),
     "r2": ("evtLevelSpell3", P("e", "ctrl")), "cross": ("evtLevelSpell4", P("r", "ctrl")),
 }
+HABILIDADES = ("l1", "l2", "r2", "cross")       # segurar = mirar (stick direito + giroscopio)
 BOTAO_AUTOATAQUE = "r1"  # clique esquerdo = atacar-mover no cursor (EnableLeftMouseButtonAttackMove do jogo)
 ACAO_DPAD = {
     "left": ("evtUseItem1", P("1")), "right": ("evtUseItem2", P("2")),
@@ -589,6 +604,12 @@ class Motor:
         self.t_diag = 0.0
         self.create_combo = False
         self.l3_combo = False
+        self.giro_bias = None
+        self.giro_off = [0.0, 0.0]
+        self.giro_f = [0.0, 0.0]
+        self.mirando_antes = False
+        self.base_mira = None
+        self.na_borda = False
         self.prev = {n: False for n in BOTOES}
         self.segurando = {}          # nome -> funcao que solta
         self.wasd = {k: False for k in ("w", "a", "s", "d", "up", "down", "left", "right")}
@@ -794,6 +815,28 @@ class Motor:
         if f:
             f()
 
+    def atualiza_giro(self, s, dt, mirando):
+        """Aprende a deriva do giroscopio com o controle parado e, enquanto mira, soma o giro ao cursor."""
+        g = (s["gpitch"], s["gyaw"])
+        if self.giro_bias is None:
+            self.giro_bias = [float(g[0]), float(g[1])]
+        for i in (0, 1):
+            dif = g[i] - self.giro_bias[i]
+            if not mirando and abs(dif) < 80:     # parado (< ~5 graus/s): ajusta a deriva devagar
+                self.giro_bias[i] += 0.002 * dif
+        if not (GIRO_ATIVO and mirando):
+            return
+        # suaviza o tremor da mao (media movel exponencial) e converte para graus/s
+        self.giro_f[0] += 0.3 * ((g[0] - self.giro_bias[0]) / 16.384 - self.giro_f[0])
+        self.giro_f[1] += 0.3 * ((g[1] - self.giro_bias[1]) / 16.384 - self.giro_f[1])
+        pitch, yaw = self.giro_f
+        if abs(pitch) < GIRO_ZONA_GRAU_S:
+            pitch = 0.0
+        if abs(yaw) < GIRO_ZONA_GRAU_S:
+            yaw = 0.0
+        self.giro_off[0] += -yaw * dt * GIRO_PX_GRAU * (-1 if GIRO_INV_X else 1)
+        self.giro_off[1] += -pitch * dt * GIRO_PX_GRAU * (-1 if GIRO_INV_Y else 1)
+
     def inicia_toque(self, rect, s):
         """Dedo encostou no touchpad: acha o retangulo da camera no minimapa e comeca o arrasto ali
         (assim o mapa nao pula; so se move conforme o dedo anda)."""
@@ -967,14 +1010,29 @@ class Motor:
         if self.toque:
             return
 
-        # --- stick direito
+        # --- stick direito (+ giroscopio enquanto segura habilidade/autoataque)
         rx, ry = s["rx"], s["ry"]
         mag = (rx * rx + ry * ry) ** 0.5
-        if self.modo_mira:
+        mirando = any(s[n] for n in HABILIDADES) or s[BOTAO_AUTOATAQUE]
+        if mirando and not self.mirando_antes:
+            self.giro_off = [0.0, 0.0]
+            self.base_mira = cursor()             # a mira parte de onde o cursor esta
+        if not mirando:
+            self.na_borda = False
+        self.mirando_antes = mirando
+        self.atualiza_giro(s, dt, mirando)
+        if self.modo_mira or mirando:
             if mag > ZONA_MORTA_MIRA:
                 cx, cy = self.centro_personagem(rect)
                 esc = min(1.0, (mag - ZONA_MORTA_MIRA) / (0.85 - ZONA_MORTA_MIRA))
-                mover(round(cx + (rx / mag) * RAIO_X * esc), round(cy + (ry / mag) * RAIO_Y * esc))
+                self.base_mira = (cx + (rx / mag) * RAIO_X * esc, cy + (ry / mag) * RAIO_Y * esc)
+                if mirando and VIBRA_BORDA:
+                    borda = esc >= 1.0
+                    if borda and not self.na_borda:
+                        self.pulso(70, 30)        # chegou no limite do alcance
+                    self.na_borda = borda
+                if not mirando:
+                    mover(round(self.base_mira[0]), round(self.base_mira[1]))
                 self.mira_ativa = True
                 self.soltou_em = 0.0
             elif self.mira_ativa:
@@ -983,6 +1041,10 @@ class Motor:
             if self.soltou_em and VOLTA_S > 0 and agora - max(self.soltou_em, self.ultima_acao) >= VOLTA_S:
                 mover(*self.centro_personagem(rect))
                 self.soltou_em = 0.0
+            if mirando and self.base_mira:
+                bx, by = self.base_mira
+                mover(limita(round(bx + self.giro_off[0]), rect[0], rect[2] - 1),
+                      limita(round(by + self.giro_off[1]), rect[1], rect[3] - 1))
         elif mag > ZONA_MORTA:
             esc = min(1.0, (mag - ZONA_MORTA) / (1 - ZONA_MORTA))
             fator = (esc ** 2) * VEL_LIVRE_PX_S * dt / mag
@@ -1084,6 +1146,31 @@ def modo_ver():
     ds.fechar()
 
 
+def ajustar_jogo():
+    """python lol_controle.py --ajustar-jogo  -> liga no game.cfg a opcao do LoL que limita o alvo do
+    lancamento ao alcance maximo (stick no fim = habilidade no alcance maximo). So com o jogo FECHADO:
+    aberto, ele regrava o arquivo ao sair. Guarda uma copia antes (game.cfg.bak-controle)."""
+    import shutil
+    import subprocess
+    lista = subprocess.run(["tasklist", "/FI", "IMAGENAME eq League of Legends.exe"],
+                           capture_output=True, text=True).stdout
+    if "League of Legends.exe" in lista:
+        print("Feche a partida primeiro (o jogo regrava o game.cfg ao sair).")
+        return
+    cfg = os.path.join(os.path.dirname(INPUT_INI), "game.cfg")
+    with open(cfg, encoding="utf-8", errors="ignore") as f:
+        texto = f.read()
+    if not os.path.exists(cfg + ".bak-controle"):
+        shutil.copy2(cfg, cfg + ".bak-controle")
+    novo, n = re.subn(r"(?m)^ClampCastTargetLocationWithinMaxRange=\d+",
+                      "ClampCastTargetLocationWithinMaxRange=1", texto)
+    if n == 0:
+        novo = re.sub(r"(?m)^\[General\]\s*$", "[General]\nClampCastTargetLocationWithinMaxRange=1", texto, count=1)
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write(novo)
+    print("Pronto: ClampCastTargetLocationWithinMaxRange=1 (copia em game.cfg.bak-controle)")
+
+
 def modo_luz():
     ds = DualSense()
     if not ds.abrir():
@@ -1103,5 +1190,7 @@ if __name__ == "__main__":
         modo_ver()
     elif "--luz" in sys.argv:
         modo_luz()
+    elif "--ajustar-jogo" in sys.argv:
+        ajustar_jogo()
     else:
         principal()

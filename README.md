@@ -21,6 +21,7 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | R1 | autoataque (clique esquerdo = atacar-mover no cursor) |
 | L1 / L2 / R2 / X | habilidades 1 / 2 / 3 / 4 |
 | L3 segurado + L1·L2·R2·X | subir habilidade 1 / 2 / 3 / 4 (Ctrl+Q/W/E/R) |
+| **Segurando** habilidade ou autoataque | stick direito mira (até no modo livre), **giroscópio** ajusta fino, vibra no **limite do alcance** |
 | L3 (toque sozinho) | clique direito |
 | Quadrado / Triângulo | feitiços 5 / 6 |
 | Direcional | esq = item 7, dir = item 8, cima = 9 (ward), baixo = B (voltar à base) |
@@ -29,6 +30,11 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | Create + clique do touchpad | travar/destravar câmera |
 | Touchpad (arrastar) | clique esquerdo no minimapa, partindo de onde a câmera está |
 | Luz / LEDs / vibração | luz = vida (azul = cursor livre, roxo = pausa); LEDs = pontos de habilidade; vibra com dano, morte, ponto |
+
+**Mira de habilidade estilo Wild Rift** (segurar = mirar, soltar = lançar): no jogo, em Opções → Teclas de atalho,
+deixe as habilidades em **Quick Cast with Indicator** (lançamento rápido com indicador). **Alcance travado no máximo**:
+com o jogo FECHADO, rode `python lol_controle.py --ajustar-jogo` (liga `ClampCastTargetLocationWithinMaxRange=1`
+no `game.cfg`, com cópia de segurança). Ajustes do giroscópio no topo do script (`GIRO_*`).
 
 As teclas vêm do próprio jogo: o motor lê `Config\input.ini` (o dono das teclas é o jogo). `PRESET = "wasd"` no topo
 do script aplica as sobreposições do bloco `[WASD]`.
