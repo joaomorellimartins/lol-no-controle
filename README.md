@@ -16,7 +16,8 @@ Log: `lol_controle.log` (batimento a cada 5 s com o máximo dos sticks; `DIAG` q
 | Controle | Faz |
 |---|---|
 | Stick esquerdo | W A S D (andar) |
-| Stick direito | **Modo mira**: cursor = personagem + direção do stick; fica onde você mirou (precisa de câmera travada) |
+| Stick direito | **Modo mira**: cursor = personagem + **direção** do stick, a distância fixa (`MIRA_DISTANCIA`); fica onde você mirou (precisa de câmera travada) |
+| Stick direito solto | o cursor vai para a frente do personagem, **no rumo em que ele anda** (WASD) |
 | R3 (toque) / R3 segurado 1 s | alterna MIRA ↔ LIVRE / **calibra** (mouse físico em cima do personagem) |
 | R1 | autoataque (clique esquerdo = atacar-mover no cursor) |
 | L1 / L2 / R2 / X | habilidades 1 / 2 / 3 / 4 |

@@ -5,7 +5,8 @@ So atua quando o LoL (jogo ou cliente) esta em foco. Cada aperto gera UMA acao.
 
 MAPA (preset "Keyboard (WASD)" do jogo; as teclas sao lidas do input.ini do LoL)
   Stick esquerdo ....... W A S D (andar)
-  Stick direito ........ MODO MIRA: cursor = personagem + direcao do stick (fica onde voce mirou)
+  Stick direito ........ MODO MIRA: cursor = personagem + DIRECAO do stick, a distancia fixa (fica onde mirou)
+                         solto: o cursor vai para frente do personagem, no rumo em que ele anda (WASD)
   R3 (clicar stick dir). toque curto = alterna MIRA <-> LIVRE (LIVRE = cursor solto, loja/menus)
   R3 SEGURADO 1 s ...... CALIBRAR (camera travada, mouse fisico em cima do personagem) -- ou Create + R3
   R1 ................... autoataque (clique esquerdo = atacar-mover no cursor)
@@ -46,6 +47,9 @@ ZONA_WASD        = 0.40    # quanto empurrar o stick esquerdo para virar W/A/S/D
 RAIO_X           = 600     # modo mira: alcance horizontal a partir do personagem (pixels)
 RAIO_Y           = 380     # modo mira: alcance vertical
 ZONA_MORTA_MIRA  = 0.25    # stick precisa passar disso para mirar
+MIRA_POR_DIRECAO = True    # stick direito so da a DIRECAO: o cursor fica a uma distancia fixa (MIRA_DISTANCIA)
+MIRA_DISTANCIA   = 0.75    # distancia fixa, como fracao de RAIO_X/RAIO_Y
+MIRA_SEGUE_MOVIMENTO = True  # stick direito solto: o cursor vai para frente do personagem, no rumo em que ele anda
 # --- mira de habilidade (segurar o botao da habilidade ou do autoataque) -- DESLIGADA (testada em 18/10/2026,
 #     funcionou mas nao agradou; o codigo fica para religar trocando as chaves abaixo para True)
 MIRA_AO_SEGURAR  = False   # segurando habilidade/autoataque, o stick direito mira mesmo no modo LIVRE
@@ -1025,7 +1029,10 @@ class Motor:
         if self.modo_mira or mirando:
             if mag > ZONA_MORTA_MIRA:
                 cx, cy = self.centro_personagem(rect)
-                esc = min(1.0, (mag - ZONA_MORTA_MIRA) / (0.85 - ZONA_MORTA_MIRA))
+                if MIRA_POR_DIRECAO and not mirando:
+                    esc = MIRA_DISTANCIA              # so a direcao importa: distancia fixa
+                else:
+                    esc = min(1.0, (mag - ZONA_MORTA_MIRA) / (0.85 - ZONA_MORTA_MIRA))
                 self.base_mira = (cx + (rx / mag) * RAIO_X * esc, cy + (ry / mag) * RAIO_Y * esc)
                 if mirando and VIBRA_BORDA:
                     borda = esc >= 1.0
@@ -1036,9 +1043,21 @@ class Motor:
                     mover(round(self.base_mira[0]), round(self.base_mira[1]))
                 self.mira_ativa = True
                 self.soltou_em = 0.0
-            elif self.mira_ativa:
-                self.mira_ativa = False
-                self.soltou_em = agora
+            else:
+                if self.mira_ativa:
+                    self.mira_ativa = False
+                    self.soltou_em = agora
+                # stick direito solto: mira no rumo em que o personagem anda (teclas W/A/S/D apertadas agora)
+                if MIRA_SEGUE_MOVIMENTO and not mirando:
+                    ts = self.teclas_stick
+                    vx = int(self.wasd[ts["right"]]) - int(self.wasd[ts["left"]])
+                    vy = int(self.wasd[ts["down"]]) - int(self.wasd[ts["up"]])
+                    if vx or vy:
+                        n = (vx * vx + vy * vy) ** 0.5
+                        cx, cy = self.centro_personagem(rect)
+                        self.base_mira = (cx + vx / n * RAIO_X * MIRA_DISTANCIA, cy + vy / n * RAIO_Y * MIRA_DISTANCIA)
+                        mover(round(self.base_mira[0]), round(self.base_mira[1]))
+                        self.soltou_em = 0.0
             if self.soltou_em and VOLTA_S > 0 and agora - max(self.soltou_em, self.ultima_acao) >= VOLTA_S:
                 mover(*self.centro_personagem(rect))
                 self.soltou_em = 0.0
